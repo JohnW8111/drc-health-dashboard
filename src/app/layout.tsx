@@ -69,6 +69,12 @@ export default function RootLayout({
                 >
                   Resources
                 </a>
+                <a
+                  href="/about"
+                  className="text-gray-600 hover:text-gray-900 transition"
+                >
+                  About Indicators
+                </a>
               </nav>
             </div>
           </div>
