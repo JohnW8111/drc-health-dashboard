@@ -56,6 +56,9 @@ export default function HomePage() {
           23 indicators across 3 dimensions of the modified Triple Aim
           framework, with data from international health databases.
         </p>
+        <p className="text-sm text-blue-600 mt-2">
+          Click any indicator to view its historical trend chart.
+        </p>
         {!loading && (
           <div className="flex gap-4 mt-3">
             <span className="text-sm text-gray-500">

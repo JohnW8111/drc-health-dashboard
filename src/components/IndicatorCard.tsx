@@ -35,7 +35,7 @@ export function IndicatorCard({
 }: IndicatorCardProps) {
   return (
     <Link href={`/indicator/${id}`}>
-      <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer h-full">
+      <div className="group bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer h-full">
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-sm font-medium text-gray-900 leading-tight pr-2">
             {name}
@@ -66,15 +66,23 @@ export function IndicatorCard({
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-            {SOURCE_LABELS[apiSource] || apiSource}
-          </span>
-          {hasSubnational && (
-            <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
-              Provincial data
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+              {SOURCE_LABELS[apiSource] || apiSource}
             </span>
-          )}
+            {hasSubnational && (
+              <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                Provincial data
+              </span>
+            )}
+          </div>
+          <span className="text-xs text-gray-400 group-hover:text-blue-500 transition-colors flex items-center gap-1">
+            View trend
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
         </div>
       </div>
     </Link>
