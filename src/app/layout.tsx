@@ -70,6 +70,12 @@ export default function RootLayout({
                   Resources
                 </a>
                 <a
+                  href="/equity"
+                  className="text-purple-600 hover:text-purple-800 font-medium transition"
+                >
+                  Equity
+                </a>
+                <a
                   href="/about"
                   className="text-gray-600 hover:text-gray-900 transition"
                 >
@@ -87,8 +93,9 @@ export default function RootLayout({
             <p className="text-xs text-gray-400">
               Framework based on the Triple Aim (Berwick, Nolan, Whittington,
               2008), modified for LMIC context. Data from DHS Program, World
-              Bank, WHO GHO, and UNICEF APIs. Dashboard built for volunteer
-              healthcare work in the DRC.
+              Bank, WHO GHO, and UNICEF APIs. Health equity analysis informed
+              by the WHO Health Inequality Data Repository (HIDR). Dashboard
+              built for volunteer healthcare work in the DRC.
             </p>
           </div>
         </footer>

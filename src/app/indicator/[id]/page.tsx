@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { DIMENSION_LABELS, DIMENSION_COLORS, Dimension } from "@/lib/indicators";
 import { TrendChart } from "@/components/TrendChart";
 import { SubnationalChart } from "@/components/SubnationalChart";
+import { EquityChart } from "@/components/EquityChart";
 import { StatusBadge } from "@/components/StatusBadge";
 import { LoadingChart } from "@/components/LoadingGrid";
 
@@ -43,6 +44,9 @@ export default function IndicatorDetailPage() {
   const [subnationalData, setSubnationalData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSubnational, setShowSubnational] = useState(false);
+  const [showEquity, setShowEquity] = useState(false);
+  const [equityData, setEquityData] = useState<{ quintile: string; value: number }[]>([]);
+  const [equityYear, setEquityYear] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,6 +80,28 @@ export default function IndicatorDetailPage() {
         .catch(console.error);
     }
   }, [showSubnational, indicator, id, subnationalData.length]);
+
+  // Fetch equity data when toggled
+  useEffect(() => {
+    if (showEquity && indicator?.apiSource === "dhs" && equityData.length === 0) {
+      fetch(`/api/equity?id=${id}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.data && json.data.length > 0) {
+            const maxYear = Math.max(...json.data.map((d: { year: number }) => d.year));
+            const latest = json.data
+              .filter((d: { year: number }) => d.year === maxYear)
+              .map((d: { quintile: string; value: number }) => ({
+                quintile: d.quintile,
+                value: d.value,
+              }));
+            setEquityData(latest);
+            setEquityYear(maxYear);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [showEquity, indicator, id, equityData.length]);
 
   if (loading) {
     return (
@@ -191,6 +217,44 @@ export default function IndicatorDetailPage() {
               color={color}
               benchmark={indicator.ssaBenchmark}
             />
+          )}
+        </div>
+      )}
+
+      {/* Equity by wealth quintile */}
+      {indicator.apiSource === "dhs" && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">Health Equity — Wealth Quintiles</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                WHO Health Inequality framework — outcomes by household wealth
+              </p>
+            </div>
+            <button
+              onClick={() => setShowEquity(!showEquity)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                showEquity
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {showEquity ? "Hide Equity Data" : "Show Equity Data"}
+            </button>
+          </div>
+          {showEquity && (
+            <div>
+              {equityYear && (
+                <p className="text-sm text-gray-500 mb-3">
+                  Survey year: {equityYear}
+                </p>
+              )}
+              <EquityChart
+                data={equityData}
+                unit={indicator.unit}
+                higherIsBetter={indicator.higherIsBetter}
+              />
+            </div>
           )}
         </div>
       )}

@@ -7,18 +7,25 @@ export interface DHSDataPoint {
   surveyId?: string;
 }
 
+export interface EquityDataPoint {
+  year: number;
+  quintile: string;
+  value: number;
+}
+
 const BASE_URL = "https://api.dhsprogram.com/rest/dhs";
 const COUNTRY_CODE = "CD"; // DRC in DHS system
+const QUINTILE_ORDER = ["Lowest", "Second", "Middle", "Fourth", "Highest"];
 
-export async function fetchDHSIndicator(
-  indicatorId: string,
-  breakdown: "national" | "subnational" = "national"
-): Promise<DHSDataPoint[]> {
-  const cacheKey = `dhs_${indicatorId}_${breakdown}`;
-  const cached = getCached<DHSDataPoint[]>(cacheKey);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DHSRawRecord = any;
+
+// Shared raw fetch — single API call per indicator, cached and reused
+async function fetchDHSRaw(indicatorId: string): Promise<DHSRawRecord[]> {
+  const cacheKey = `dhs_raw_${indicatorId}`;
+  const cached = getCached<DHSRawRecord[]>(cacheKey);
   if (cached) return cached;
 
-  // For national, filter to Total category; for subnational use all and filter to Region
   const url = `${BASE_URL}/data?countryIds=${COUNTRY_CODE}&indicatorIds=${indicatorId}&breakdown=all&f=json`;
 
   const response = await fetch(url);
@@ -28,16 +35,27 @@ export async function fetchDHSIndicator(
   }
 
   const json = await response.json();
+  if (!json.Data || !Array.isArray(json.Data)) return [];
 
-  if (!json.Data || !Array.isArray(json.Data)) {
-    return [];
-  }
+  setCache(cacheKey, json.Data);
+  return json.Data;
+}
+
+export async function fetchDHSIndicator(
+  indicatorId: string,
+  breakdown: "national" | "subnational" = "national"
+): Promise<DHSDataPoint[]> {
+  const cacheKey = `dhs_${indicatorId}_${breakdown}`;
+  const cached = getCached<DHSDataPoint[]>(cacheKey);
+  if (cached) return cached;
+
+  const rawData = await fetchDHSRaw(indicatorId);
+  if (rawData.length === 0) return [];
 
   let data: DHSDataPoint[];
 
   if (breakdown === "subnational") {
-    // Filter to Region category, exclude sub-provinces (those starting with "..")
-    data = json.Data
+    data = rawData
       .filter(
         (d: { CharacteristicCategory: string; CharacteristicLabel: string }) =>
           d.CharacteristicCategory === "Region" &&
@@ -57,8 +75,7 @@ export async function fetchDHSIndicator(
         })
       );
   } else {
-    // National: get Total category (label may be "Total" or "Total 15-49" etc.)
-    const totalRecords = json.Data.filter(
+    const totalRecords = rawData.filter(
       (d: { CharacteristicCategory: string; CharacteristicLabel: string }) =>
         (d.CharacteristicCategory === "Total" ||
          d.CharacteristicCategory === "Total 15-49") &&
@@ -66,7 +83,6 @@ export async function fetchDHSIndicator(
     );
 
     if (totalRecords.length > 0) {
-      // Deduplicate by year (some indicators have multiple Total rows per survey)
       const seenYears = new Set<number>();
       data = totalRecords
         .map(
@@ -82,9 +98,8 @@ export async function fetchDHSIndicator(
           return true;
         });
     } else {
-      // Fallback: get one record per survey year (first "0-4" period)
       const seen = new Set<number>();
-      data = json.Data
+      data = rawData
         .filter((d: { CharacteristicLabel: string; SurveyYear: number }) => {
           if (d.CharacteristicLabel === "0-4" && !seen.has(d.SurveyYear)) {
             seen.add(d.SurveyYear);
@@ -110,4 +125,35 @@ export async function fetchDHSSubnational(
   indicatorId: string
 ): Promise<DHSDataPoint[]> {
   return fetchDHSIndicator(indicatorId, "subnational");
+}
+
+export async function fetchDHSEquity(
+  indicatorId: string
+): Promise<EquityDataPoint[]> {
+  const cacheKey = `dhs_equity_${indicatorId}`;
+  const cached = getCached<EquityDataPoint[]>(cacheKey);
+  if (cached) return cached;
+
+  const rawData = await fetchDHSRaw(indicatorId);
+  if (rawData.length === 0) return [];
+
+  const data: EquityDataPoint[] = rawData
+    .filter(
+      (d: { CharacteristicCategory: string }) =>
+        d.CharacteristicCategory === "Wealth quintile"
+    )
+    .map(
+      (d: { SurveyYear: number; Value: number; CharacteristicLabel: string }) => ({
+        year: d.SurveyYear,
+        quintile: d.CharacteristicLabel,
+        value: d.Value,
+      })
+    )
+    .sort((a: EquityDataPoint, b: EquityDataPoint) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return QUINTILE_ORDER.indexOf(a.quintile) - QUINTILE_ORDER.indexOf(b.quintile);
+    });
+
+  setCache(cacheKey, data);
+  return data;
 }
