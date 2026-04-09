@@ -7,6 +7,7 @@ export interface GHODataPoint {
 
 const BASE_URL = "https://ghoapi.azureedge.net/api";
 const COUNTRY_CODE = "COD"; // DRC
+const FETCH_TIMEOUT_MS = 10_000;
 
 export async function fetchGHOIndicator(
   indicatorCode: string
@@ -17,7 +18,7 @@ export async function fetchGHOIndicator(
 
   const url = `${BASE_URL}/${indicatorCode}?$filter=SpatialDim eq '${COUNTRY_CODE}'&$orderby=TimeDim`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) {
     console.error(`WHO GHO API error: ${response.status} for ${indicatorCode}`);
     return [];

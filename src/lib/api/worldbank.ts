@@ -7,6 +7,7 @@ export interface WorldBankDataPoint {
 
 const BASE_URL = "https://api.worldbank.org/v2";
 const COUNTRY_CODE = "COD"; // DRC
+const FETCH_TIMEOUT_MS = 10_000;
 
 export async function fetchWorldBankIndicator(
   indicatorCode: string
@@ -17,7 +18,7 @@ export async function fetchWorldBankIndicator(
 
   const url = `${BASE_URL}/country/${COUNTRY_CODE}/indicator/${indicatorCode}?format=json&per_page=50&mrv=20`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) {
     console.error(`World Bank API error: ${response.status} for ${indicatorCode}`);
     return [];

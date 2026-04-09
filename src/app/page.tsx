@@ -1,47 +1,17 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { Dimension, DIMENSION_LABELS } from "@/lib/indicators";
+import { indicators, Dimension, DIMENSION_LABELS } from "@/lib/indicators";
+import { fetchIndicatorSummaries } from "@/lib/api/fetch-indicator";
 import { DimensionSection } from "@/components/DimensionSection";
-import { LoadingGrid } from "@/components/LoadingGrid";
 
-interface IndicatorSummary {
-  id: string;
-  name: string;
-  dimension: Dimension;
-  unit: string;
-  hasSubnational: boolean;
-  higherIsBetter: boolean;
-  ssaBenchmark?: number;
-  latestValue: number | null;
-  latestYear: number | null;
-  apiSource: string;
-  error?: boolean;
-}
+export const revalidate = 86400; // ISR: revalidate every 24 hours
 
-export default function HomePage() {
-  const [data, setData] = useState<IndicatorSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const dimensions: Dimension[] = [
+  "population-health",
+  "access-quality",
+  "resources-efficiency",
+];
 
-  useEffect(() => {
-    fetch("/api/indicators")
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json.indicators || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
-
-  const dimensions: Dimension[] = [
-    "population-health",
-    "access-quality",
-    "resources-efficiency",
-  ];
+export default async function HomePage() {
+  const data = await fetchIndicatorSummaries(indicators);
 
   const loadedCount = data.filter((d) => d.latestValue !== null).length;
   const errorCount = data.filter((d) => d.error).length;
@@ -59,22 +29,20 @@ export default function HomePage() {
         <p className="text-sm text-blue-600 mt-2">
           Click any indicator to view its historical trend chart.
         </p>
-        {!loading && (
-          <div className="flex gap-4 mt-3">
-            <span className="text-sm text-gray-500">
-              {loadedCount} indicators with data
+        <div className="flex gap-4 mt-3">
+          <span className="text-sm text-gray-500">
+            {loadedCount} indicators with data
+          </span>
+          {errorCount > 0 && (
+            <span className="text-sm text-red-500">
+              {errorCount} failed to load
             </span>
-            {errorCount > 0 && (
-              <span className="text-sm text-red-500">
-                {errorCount} failed to load
-              </span>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
-      {!loading && data.length > 0 && (
+      {data.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {dimensions.map((dim) => {
             const dimIndicators = data.filter((d) => d.dimension === dim);
@@ -105,32 +73,13 @@ export default function HomePage() {
         </div>
       )}
 
-      {loading && (
-        <div>
-          <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse" />
-          <LoadingGrid count={12} />
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-700 text-sm">
-            Failed to load dashboard data: {error}
-          </p>
-          <p className="text-red-500 text-xs mt-1">
-            This may be due to API rate limits or network issues. Try refreshing.
-          </p>
-        </div>
-      )}
-
-      {!loading &&
-        dimensions.map((dim) => (
-          <DimensionSection
-            key={dim}
-            dimension={dim}
-            indicators={data.filter((d) => d.dimension === dim)}
-          />
-        ))}
+      {dimensions.map((dim) => (
+        <DimensionSection
+          key={dim}
+          dimension={dim}
+          indicators={data.filter((d) => d.dimension === dim)}
+        />
+      ))}
     </div>
   );
 }

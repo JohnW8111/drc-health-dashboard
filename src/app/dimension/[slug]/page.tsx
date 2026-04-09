@@ -1,49 +1,34 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import {
+  indicators as allIndicators,
   Dimension,
   DIMENSION_LABELS,
   DIMENSION_COLORS,
 } from "@/lib/indicators";
+import { fetchIndicatorSummaries } from "@/lib/api/fetch-indicator";
 import { IndicatorCard } from "@/components/IndicatorCard";
-import { LoadingGrid } from "@/components/LoadingGrid";
 
-interface IndicatorSummary {
-  id: string;
-  name: string;
-  dimension: Dimension;
-  unit: string;
-  hasSubnational: boolean;
-  higherIsBetter: boolean;
-  ssaBenchmark?: number;
-  latestValue: number | null;
-  latestYear: number | null;
-  apiSource: string;
+export const revalidate = 86400; // ISR: revalidate every 24 hours
+
+export function generateStaticParams() {
+  return [
+    { slug: "population-health" },
+    { slug: "access-quality" },
+    { slug: "resources-efficiency" },
+  ];
 }
 
-export default function DimensionPage() {
-  const params = useParams();
-  const slug = params.slug as Dimension;
-  const [indicators, setIndicators] = useState<IndicatorSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function DimensionPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const dimension = slug as Dimension;
+  const dimIndicators = allIndicators.filter((i) => i.dimension === dimension);
+  const indicators = await fetchIndicatorSummaries(dimIndicators);
 
-  useEffect(() => {
-    fetch("/api/indicators")
-      .then((res) => res.json())
-      .then((json) => {
-        const filtered = (json.indicators || []).filter(
-          (i: IndicatorSummary) => i.dimension === slug
-        );
-        setIndicators(filtered);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [slug]);
-
-  const label = DIMENSION_LABELS[slug] || slug;
-  const color = DIMENSION_COLORS[slug] || "#2563eb";
+  const label = DIMENSION_LABELS[dimension] || slug;
+  const color = DIMENSION_COLORS[dimension] || "#2563eb";
 
   return (
     <div>
@@ -68,26 +53,22 @@ export default function DimensionPage() {
         </div>
       </div>
 
-      {loading ? (
-        <LoadingGrid count={6} />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {indicators.map((ind) => (
-            <IndicatorCard
-              key={ind.id}
-              id={ind.id}
-              name={ind.name}
-              unit={ind.unit}
-              latestValue={ind.latestValue}
-              latestYear={ind.latestYear}
-              ssaBenchmark={ind.ssaBenchmark}
-              higherIsBetter={ind.higherIsBetter}
-              hasSubnational={ind.hasSubnational}
-              apiSource={ind.apiSource}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {indicators.map((ind) => (
+          <IndicatorCard
+            key={ind.id}
+            id={ind.id}
+            name={ind.name}
+            unit={ind.unit}
+            latestValue={ind.latestValue}
+            latestYear={ind.latestYear}
+            ssaBenchmark={ind.ssaBenchmark}
+            higherIsBetter={ind.higherIsBetter}
+            hasSubnational={ind.hasSubnational}
+            apiSource={ind.apiSource}
+          />
+        ))}
+      </div>
     </div>
   );
 }

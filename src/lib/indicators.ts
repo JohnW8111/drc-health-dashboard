@@ -251,6 +251,7 @@ export const indicators: Indicator[] = [
     apiCode: "HWF_0006",
     hasSubnational: false,
     higherIsBetter: true,
+    ssaBenchmark: 2.0,
     sourceUrl: "https://www.who.int/data/gho",
   },
   {

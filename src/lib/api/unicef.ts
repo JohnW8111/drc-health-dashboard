@@ -6,6 +6,7 @@ export interface UNICEFDataPoint {
 }
 
 const BASE_URL = "https://sdmx.data.unicef.org/ws/public/sdmxapi/rest";
+const FETCH_TIMEOUT_MS = 10_000;
 
 // Map indicator areas to UNICEF dataflow IDs
 const DATAFLOW_MAP: Record<string, string> = {
@@ -26,7 +27,7 @@ export async function fetchUNICEFIndicator(
   const url = `${BASE_URL}/data/${dataflow}/COD.${indicatorCode}..?format=sdmx-json&startPeriod=2000&endPeriod=2025`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!response.ok) {
       console.error(`UNICEF API error: ${response.status} for ${indicatorCode}`);
       return [];

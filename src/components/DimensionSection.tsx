@@ -1,24 +1,10 @@
-"use client";
-
 import { DIMENSION_LABELS, DIMENSION_COLORS, Dimension } from "@/lib/indicators";
+import { IndicatorSummary } from "@/lib/api/fetch-indicator";
 import { IndicatorCard } from "./IndicatorCard";
-
-interface IndicatorData {
-  id: string;
-  name: string;
-  dimension: Dimension;
-  unit: string;
-  hasSubnational: boolean;
-  higherIsBetter: boolean;
-  ssaBenchmark?: number;
-  latestValue: number | null;
-  latestYear: number | null;
-  apiSource: string;
-}
 
 interface DimensionSectionProps {
   dimension: Dimension;
-  indicators: IndicatorData[];
+  indicators: IndicatorSummary[];
 }
 
 export function DimensionSection({

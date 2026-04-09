@@ -1,4 +1,4 @@
-import { Indicator } from "../indicators";
+import { Indicator, Dimension, ApiSource } from "../indicators";
 import { fetchWorldBankIndicator } from "./worldbank";
 import { fetchDHSIndicator, fetchDHSSubnational } from "./dhs";
 import { fetchGHOIndicator } from "./who-gho";
@@ -8,6 +8,63 @@ export interface DataPoint {
   year: number;
   value: number;
   region?: string;
+}
+
+export interface IndicatorSummary {
+  id: string;
+  name: string;
+  dimension: Dimension;
+  unit: string;
+  hasSubnational: boolean;
+  higherIsBetter: boolean;
+  ssaBenchmark?: number;
+  latestValue: number | null;
+  latestYear: number | null;
+  apiSource: ApiSource;
+  error?: boolean;
+}
+
+export async function fetchIndicatorSummaries(
+  indicatorList: Indicator[]
+): Promise<IndicatorSummary[]> {
+  const results = await Promise.allSettled(
+    indicatorList.map(async (indicator) => {
+      try {
+        const data = await fetchIndicatorData(indicator);
+        const latest = data.length > 0 ? data[data.length - 1] : null;
+        return {
+          id: indicator.id,
+          name: indicator.name,
+          dimension: indicator.dimension,
+          unit: indicator.unit,
+          hasSubnational: indicator.hasSubnational,
+          higherIsBetter: indicator.higherIsBetter,
+          ssaBenchmark: indicator.ssaBenchmark,
+          latestValue: latest?.value ?? null,
+          latestYear: latest?.year ?? null,
+          apiSource: indicator.apiSource,
+        };
+      } catch {
+        return {
+          id: indicator.id,
+          name: indicator.name,
+          dimension: indicator.dimension,
+          unit: indicator.unit,
+          hasSubnational: indicator.hasSubnational,
+          higherIsBetter: indicator.higherIsBetter,
+          ssaBenchmark: indicator.ssaBenchmark,
+          latestValue: null,
+          latestYear: null,
+          apiSource: indicator.apiSource,
+          error: true,
+        };
+      }
+    })
+  );
+
+  return results
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
+    .filter((r): r is NonNullable<typeof r> => r !== null);
 }
 
 export async function fetchIndicatorData(

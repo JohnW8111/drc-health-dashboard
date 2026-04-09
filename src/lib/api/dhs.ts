@@ -15,6 +15,7 @@ export interface EquityDataPoint {
 
 const BASE_URL = "https://api.dhsprogram.com/rest/dhs";
 const COUNTRY_CODE = "CD"; // DRC in DHS system
+const FETCH_TIMEOUT_MS = 10_000;
 const QUINTILE_ORDER = ["Lowest", "Second", "Middle", "Fourth", "Highest"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +29,7 @@ async function fetchDHSRaw(indicatorId: string): Promise<DHSRawRecord[]> {
 
   const url = `${BASE_URL}/data?countryIds=${COUNTRY_CODE}&indicatorIds=${indicatorId}&breakdown=all&f=json`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) {
     console.error(`DHS API error: ${response.status} for ${indicatorId}`);
     return [];
